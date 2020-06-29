@@ -9,10 +9,11 @@ Created on Sun Mar 17 09:56:57 2019
 from keras.models import Sequential
 from keras.layers import Conv2D #if video : 3D (+time)
 from keras.layers import MaxPooling2D
+from keras.layers import Dropout
 from keras.layers import Flatten
 from keras.layers import Dense
 from keras.preprocessing.image import ImageDataGenerator
-import maplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 import tensorflow as tf
 
 
@@ -72,38 +73,52 @@ test_set = test_datagen.flow_from_directory(
     batch_size=32,
     class_mode='binary')
 
-classifier.fit(
+history = classifier.fit(
     training_set,
     steps_per_epoch=(8000/32),
     epochs=25,
     validation_data=test_set,
     validation_steps=(2000/32))
 
+acc = history.history['accuracy']
+val_acc = history.history['val_accuracy']
+loss = history.history['loss']
+val_loss = history.history['val_loss']
 
-# So we perform a 90% accuracy score.
 
 
+#Looking at the error curves we can see that our model is overfitting after ~7 epochs, we can use the Dropout layer to further decrease it
+# See : https://machinelearningmastery.com/how-to-reduce-overfitting-with-dropout-regularization-in-keras/
+# See # https://towardsdatascience.com/a-guide-to-an-efficient-way-to-build-neural-network-architectures-part-ii-hyper-parameter-42efca01e5d7
 # Let's try a more complex model : 
-# Bigger input shape (128)
-# More training (Epochs from 25 to 50)
+# Bigger input shape (256)
 # 1 more CONV2D+POOLING layer
 # 1 more layer in the ANN
-INPUT_SHAPE = 128
+INPUT_SHAPE = 256
 
 classifier=Sequential()
 
 #Step 1 - Convolution
-classifier.add(Conv2D(32,kernel_size=(3,3), activation='relu', input_shape=(INPUT_SHAPE,INPUT_SHAPE,3)))
+classifier.add(Conv2D(16,kernel_size=(3,3), activation='relu', input_shape=(INPUT_SHAPE,INPUT_SHAPE,3)))
+classifier.add(Conv2D(16,kernel_size=(3,3), activation='relu'))
 classifier.add(MaxPooling2D(pool_size=(2,2)))
+classifier.add(Dropout(0.2))
+classifier.add(Conv2D(32,kernel_size=(3,3), activation='relu'))
 classifier.add(Conv2D(32,kernel_size=(3,3), activation='relu'))
 classifier.add(MaxPooling2D(pool_size=(2,2)))
-classifier.add(Conv2D(32,kernel_size=(3,3), activation='relu'))
+classifier.add(Dropout(0.2))
+classifier.add(Conv2D(64,kernel_size=(3,3), activation='relu'))
+classifier.add(Conv2D(64,kernel_size=(3,3), activation='relu'))
 classifier.add(MaxPooling2D(pool_size=(2,2)))
+
+classifier.add(Dropout(0.2))
 classifier.add(Flatten())
 
 #Step 4 - Full connection= classic ANN
 classifier.add(Dense(units= 128, activation='relu'))
+classifier.add(Dropout(0.7))
 classifier.add(Dense(units= 64, activation='relu'))
+classifier.add(Dropout(0.7))
 classifier.add(Dense(units= 1, activation='sigmoid'))
 #Compiling the CNN
 classifier.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
@@ -132,30 +147,31 @@ test_set = test_datagen.flow_from_directory(
 history = classifier.fit(
     training_set,
     steps_per_epoch=(8000/32),
-    epochs=50,
+    epochs=10,
     validation_data=test_set,
     validation_steps=(2000/32))
 
 # 
 
 # plot error curves
-acc = history.history['acc']
-val_acc = history.history['val_acc']
+acc = history.history['accuracy']
+val_acc = history.history['val_accuracy']
 loss = history.history['loss']
 val_loss = history.history['val_loss']
 
 epochs = range(1, len(acc) + 1)
 
-plt.plot(epochs, acc, 'bo', label='Training acc')
-plt.plot(epochs, val_acc, 'b', label='Validation acc')
-plt.title('Training and validation accuracy')
-plt.legend()
-plt.figure()
-plt.plot(epochs, loss, 'bo', label='Training loss')
-plt.plot(epochs, val_loss, 'b', label='Validation loss')
-plt.title('Training and validation loss')
-plt.legend()
-plt.show()
+#%matplotlib inline 
+plt.style.use("ggplot")
+plt.figure(figsize=(20, 10))
+plt.plot(epochs, loss, label="train_loss")
+plt.plot(epochs, val_loss, label="val_loss")
+plt.plot(epochs, acc, label="train_acc")
+plt.plot(epochs, val_acc, label="val_acc")
+plt.title("Training Loss and Accuracy on Dataset")
+plt.xlabel("Epoch #")
+plt.ylabel("Loss/Accuracy")
+plt.legend(loc="lower left")
 
 #single prediction
 

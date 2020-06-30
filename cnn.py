@@ -8,14 +8,13 @@ Created on Sun Mar 17 09:56:57 2019
 #Part 1 - Building the CNN
 from keras.models import Sequential
 from keras.layers import Conv2D #if video : 3D (+time)
-from keras.layers import MaxPooling2D
-from keras.layers import Dropout
-from keras.layers import Flatten
-from keras.layers import Dense
+
 from keras.preprocessing.image import ImageDataGenerator
 import matplotlib.pyplot as plt
 import tensorflow as tf
-
+from keras.layers import Dropout, Flatten, MaxPooling2D, Dense, BatchNormalization
+from keras.optimizers import RMSprop
+from keras.callbacks import ModelCheckpoint, Callback, EarlyStopping
 
 #Initializing the CNN
 classifier=Sequential()
@@ -101,27 +100,29 @@ classifier=Sequential()
 #Step 1 - Convolution
 classifier.add(Conv2D(16,kernel_size=(3,3), activation='relu', input_shape=(INPUT_SHAPE,INPUT_SHAPE,3)))
 classifier.add(Conv2D(16,kernel_size=(3,3), activation='relu'))
+classifier.add(BatchNormalization())
 classifier.add(MaxPooling2D(pool_size=(2,2)))
 classifier.add(Dropout(0.2))
 classifier.add(Conv2D(32,kernel_size=(3,3), activation='relu'))
 classifier.add(Conv2D(32,kernel_size=(3,3), activation='relu'))
+classifier.add(BatchNormalization())
 classifier.add(MaxPooling2D(pool_size=(2,2)))
 classifier.add(Dropout(0.2))
-classifier.add(Conv2D(64,kernel_size=(3,3), activation='relu'))
-classifier.add(Conv2D(64,kernel_size=(3,3), activation='relu'))
-classifier.add(MaxPooling2D(pool_size=(2,2)))
 
-classifier.add(Dropout(0.2))
+
 classifier.add(Flatten())
 
 #Step 4 - Full connection= classic ANN
 classifier.add(Dense(units= 128, activation='relu'))
-classifier.add(Dropout(0.7))
-classifier.add(Dense(units= 64, activation='relu'))
-classifier.add(Dropout(0.7))
+classifier.add(BatchNormalization())
+classifier.add(Dropout(0.5))
+classifier.add(Dense(units= 128, activation='relu'))
+classifier.add(BatchNormalization())
+classifier.add(Dropout(0.5))
 classifier.add(Dense(units= 1, activation='sigmoid'))
 #Compiling the CNN
-classifier.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+optimizer = RMSprop(lr=1e-4)
+classifier.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy'])
 
 train_datagen = ImageDataGenerator(
         rescale=1./255,
@@ -144,12 +145,26 @@ test_set = test_datagen.flow_from_directory(
     batch_size=32,
     class_mode='binary')
 
+## Callback for loss logging per epoch
+class LossHistory(Callback):
+    def on_train_begin(self, logs={}):
+        self.losses = []
+        self.val_losses = []
+        
+    def on_epoch_end(self, batch, logs={}):
+        self.losses.append(logs.get('loss'))
+        self.val_losses.append(logs.get('val_loss'))
+
+early_stopping = EarlyStopping(monitor='val_loss', patience=5, verbose=1, mode='auto')  
+history = LossHistory()
+
 history = classifier.fit(
     training_set,
     steps_per_epoch=(8000/32),
-    epochs=10,
+    epochs=50,
     validation_data=test_set,
-    validation_steps=(2000/32))
+    validation_steps=(2000/32),
+    callbacks=(history,early_stopping))
 
 # 
 

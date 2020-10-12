@@ -51,5 +51,4 @@ cm = confusion_matrix(y_true=test_batches.classes, y_pred=np.argmax(predictions,
 cm_plot_labels = ['cat','dog']
 plot_confusion_matrix(cm=cm, classes=cm_plot_labels, title='Confusion Matrix')
 
-filename = 'cat_dog_vgg16.sav'
-pickle.dump(model, open(filename, 'wb'))
+model.save("model.h5")

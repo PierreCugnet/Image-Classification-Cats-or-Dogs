@@ -28,6 +28,9 @@ vgg16_model.summary()
 model = Sequential()
 for layer in vgg16_model.layers[:-1]:
     model.add(layer)
+    
+for layer in model.layers:
+    layer.trainable = False
 model.add(Dense(units=2, activation='softmax'))
 
 model.compile(optimizer=Adam(learning_rate=0.0001), loss='categorical_crossentropy', metrics=['accuracy'])

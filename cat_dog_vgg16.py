@@ -9,13 +9,12 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
 from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.callbacks import EarlyStopping
-from sklearn.metrics import confusion_matrix, plot_confusion_matrix
+from sklearn.metrics import confusion_matrix
 from tensorflow.keras.models import model_from_json
 import numpy as np
-train_path = 'kaggle/input/training_set/training_set'
+train_path = 'dataset/training_set/training_set'
 # valid_path = 'data/dogs-vs-cats/valid'
-test_path = 'kaggle/input/test_set/test_set'
+test_path = 'dataset/test_set/test_set'
 
 train_batches = ImageDataGenerator(preprocessing_function=tf.keras.applications.vgg16.preprocess_input) \
     .flow_from_directory(directory=train_path, target_size=(224,224), classes=['cats', 'dogs'], batch_size=10)
@@ -39,7 +38,7 @@ model.compile(optimizer=Adam(learning_rate=0.0001), loss='categorical_crossentro
 #early_stopping = EarlyStopping(monitor='val_loss', patience=2, verbose=1, mode='auto')  
 history = model.fit(x = train_batches, 
           steps_per_epoch = len(train_batches),
-          epochs = 1)
+          epochs = 5)
 
 
 
